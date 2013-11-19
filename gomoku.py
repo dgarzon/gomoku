@@ -17,14 +17,14 @@ class Gomoku(object):
         self.player_x = Player('X', [])
         self.player_o = Player('O', [])
         self.mode = None
-        self.max_depth = 2
+        self.max_depth = int(dimension/2 - 1)
 
     def start(self):
         self.state.board.initializeBoard(self.dimension)
         if self.mode == 1:
             self.manualGame()
         elif self.mode == 2:
-            self.agentMachineGame()
+            self.agentTournamentGame()
 
     def swapTurn(self, player):
         if player == self.player_x:
@@ -90,10 +90,10 @@ class Gomoku(object):
         while self.isOver() is not True:
             print("In loop..")
 
-    def agentMachineGame(self):
-        print("Start:                                      ", end='\n')
-        print(" 1. Machine (X)                             ", end='\n')
-        print(" 2. Machine (O)                             ", end='\n')
+    def agentTournamentGame(self):
+        print("Start:                                    ", end='\n')
+        print(" 1. Agent (X)                             ", end='\n')
+        print(" 2. Agent (O)                             ", end='\n')
 
         i = int(input("Choose Starting Player: "))
         if i == 1:
@@ -108,14 +108,31 @@ class Gomoku(object):
 
         self.current = self.initial
         while self.isOver() is not True:
-            self.initial = self.current
-            best = self.alpha_beta(self.current)
-            self.state = self.state.createNewState(best, self.initial)
-            if self.state.isWinner(self.initial, self.chain) is True:
-                self.winner = self.initial
+            initial = self.current
+
+            if initial == self.initial:
+                best = self.alpha_beta(self.current, self.max_depth)
+                self.state = self.state.createNewState(best, initial)
+                self.printCurrentBoard()
+                print("Best Move: %s" % (best,))
+                print("------------------------------------------", end='\n')
+            else:
+                move = initial.getMove()
+                self.state = self.state.createNewState(move, initial)
+                self.printCurrentBoard()
+
+            if self.state.isWinner(initial, self.chain) is True:
+                self.winner = initial
                 self.printWinMessage()
-            self.state.board.printBoard()
-            input("Press Enter..")
+
+            self.current = self.swapTurn(initial)
+
+    def printCurrentBoard(self):
+        print("------------------------------------------", end='\n')
+        print("              Current Board               ")
+        print("------------------------------------------", end='\n')
+        self.state.board.printBoard()
+        print("------------------------------------------", end='\n')
 
     def machineMachineGame(self):
         print("Start:                                      ", end='\n')
@@ -161,7 +178,7 @@ class Gomoku(object):
         return self.winner is not None or\
             not self.state.board.getValidMoves()
 
-    def alpha_beta(self, player):
+    def alpha_beta(self, player, depth):
         max_valid = None
         max_utility = None
         alpha = None
@@ -169,11 +186,9 @@ class Gomoku(object):
 
         valid = self.state.getValidTransitions(player)
         for move, state in valid:
-            # print("AB")
-            # state.board.printBoard()
-            # input("Enter")
             utility = self.min_utility(state, self.swapTurn(player),
-                                       alpha, beta, self.max_depth)
+                                       alpha, beta, depth)
+
             if max_utility is None or utility > max_utility:
                 max_valid = move
                 max_utility = utility
@@ -195,9 +210,6 @@ class Gomoku(object):
             valid = state.getValidTransitions(player)
             min_utility = None
             for move, state in valid:
-                # print("MIN")
-                # state.board.printBoard()
-                # input("Enter")
                 utility = self.max_utility(state, self.swapTurn(player),
                                            alpha, beta, depth-1)
                 if min_utility is None or utility < min_utility:
@@ -219,9 +231,6 @@ class Gomoku(object):
             valid = state.getValidTransitions(player)
             max_utility = None
             for move, state in valid:
-                # print("MAX")
-                # state.board.printBoard()
-                # input("Enter")
                 utility = self.min_utility(state, self.swapTurn(player),
                                            alpha, beta, depth-1)
                 if max_utility is None or utility > max_utility:
