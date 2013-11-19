@@ -201,7 +201,6 @@ class Gomoku(object):
             if alpha is None or utility > alpha:
                 alpha = utility
 
-        print(max_utility)
         return max_valid
 
     def minValue(self, state, player, alpha, beta, depth):
