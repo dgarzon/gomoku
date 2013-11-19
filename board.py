@@ -1,5 +1,4 @@
 class Board(object):
-    """docstring for Board"""
     def __init__(self):
         super(Board, self).__init__()
         self.board = {}
@@ -22,7 +21,11 @@ class Board(object):
             print("\n", end="")
 
     def makeMove(self, move, player):
-        self.board[(move[0], move[1])] = player.piece
+        if self.isValidMove(move):
+            self.board[(move[0], move[1])] = player.piece
+            return move
+        else:
+            return (-1, -1)
 
     def isValidMove(self, move):
         if self.board[(move[0], move[1])] == '.':
@@ -37,4 +40,5 @@ class Board(object):
                 if self.isValidMove(move):
                     valid.append(move)
 
+        # return reversed(valid)
         return valid

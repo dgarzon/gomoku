@@ -1,5 +1,7 @@
+import sys
 from state import *
 from player import *
+
 
 class Gomoku(object):
     def __init__(self, dimension, chain, limit):
@@ -9,15 +11,28 @@ class Gomoku(object):
         self.chain = chain
         self.limit = limit
         self.winner = None
+        self.initial = None
         self.current = None
+        self.oponent = None
         self.player_x = Player('X', [])
         self.player_o = Player('O', [])
         self.mode = None
+        self.max_depth = 2
 
     def start(self):
         self.state.board.initializeBoard(self.dimension)
         if self.mode == 1:
             self.manualGame()
+        elif self.mode == 2:
+            self.agentMachineGame()
+
+    def swapTurn(self, player):
+        if player == self.player_x:
+            self.current = self.player_o
+            return self.player_o
+        else:
+            self.current = self.player_x
+            return self.player_x
 
     def manualGame(self):
         print("Start:                                    ", end='\n')
@@ -27,8 +42,10 @@ class Gomoku(object):
         i = int(input("Choose Starting Player: "))
         if i == 1:
             self.current = self.player_x
+            self.oponent = self.player_o
         elif i == 2:
             self.current = self.player_o
+            self.oponent = self.player_x
         else:
             print("Only Two Players Available")
             sys.exit()
@@ -40,13 +57,10 @@ class Gomoku(object):
             self.state.board.printBoard()
             print("------------------------------------------", end='\n')
             move = self.current.getMove()
-            if self.state.board.isValidMove(move):
-                self.state = self.createNewState(move)
-                if self.isWinner(move, self.current):
-                    self.winner = self.current
-                self.swapTurn()
-            else:
-                print("Invalid Move, Try Again")
+            self.state = self.state.createNewState(move, self.current)
+            if self.state.isWinner(self.current, self.chain) is True:
+                self.winner = self.current
+            self.current = self.swapTurn(self.current)
 
         if self.winner is not None:
             self.printWinMessage()
@@ -65,36 +79,48 @@ class Gomoku(object):
         i = int(input("Choose Starting Player: "))
         if i == 1:
             self.current = self.player_x
+            self.oponent = self.player_o
         elif i == 2:
             self.current = self.player_o
+            self.oponent = self.player_x
         else:
             print("Only Two Players Available")
             sys.exit()
 
-        while game.isOver() is not True:
+        while self.isOver() is not True:
             print("In loop..")
 
     def agentMachineGame(self):
         print("Start:                                      ", end='\n')
         print(" 1. Machine (X)                             ", end='\n')
-        print(" 2. Machine (O)                              ", end='\n')
+        print(" 2. Machine (O)                             ", end='\n')
 
         i = int(input("Choose Starting Player: "))
         if i == 1:
-            self.current = self.player_x
+            self.initial = self.player_x
+            self.oponent = self.player_o
         elif i == 2:
-            self.current = self.player_o
+            self.initial = self.player_o
+            self.oponent = self.player_x
         else:
             print("Only Two Players Available")
             sys.exit()
 
-        while game.isOver() is not True:
-            print("In loop..")
+        self.current = self.initial
+        while self.isOver() is not True:
+            self.initial = self.current
+            best = self.alpha_beta(self.current)
+            self.state = self.state.createNewState(best, self.initial)
+            if self.state.isWinner(self.initial, self.chain) is True:
+                self.winner = self.initial
+                self.printWinMessage()
+            self.state.board.printBoard()
+            input("Press Enter..")
 
     def machineMachineGame(self):
         print("Start:                                      ", end='\n')
         print(" 1. Machine (X)                             ", end='\n')
-        print(" 2. Machine (O)                              ", end='\n')
+        print(" 2. Machine (O)                             ", end='\n')
 
         i = int(input("Choose Starting Player: "))
         if i == 1:
@@ -107,12 +133,6 @@ class Gomoku(object):
 
         while game.isOver() is not True:
             print("In loop..")
-
-    def swapTurn(self):
-        if self.current == self.player_x:
-            self.current = self.player_o
-        else:
-            self.current = self.player_x
 
     def displayMenu(self):
         print("------------------------------------------", end='\n')
@@ -141,95 +161,75 @@ class Gomoku(object):
         return self.winner is not None or\
             not self.state.board.getValidMoves()
 
-    # http://stackoverflow.com/questions/2670217/detect-winning-game-in-nought-and-crosses
-    def isWinner(self, move, player):
-        count = 0
-        # North
-        for row in reversed(range(move[0])):
-            if self.state.board.board[(row, move[1])] == player.piece:
-                count += 1
-            else:
-                break
+    def alpha_beta(self, player):
+        max_valid = None
+        max_utility = None
+        alpha = None
+        beta = None
 
-        # South
-        for row in range(move[0], self.dimension):
-            if self.state.board.board[(row, move[1])] == player.piece:
-                count += 1
-            else:
-                break
+        valid = self.state.getValidTransitions(player)
+        for move, state in valid:
+            # print("AB")
+            # state.board.printBoard()
+            # input("Enter")
+            utility = self.min_utility(state, self.swapTurn(player),
+                                       alpha, beta, self.max_depth)
+            if max_utility is None or utility > max_utility:
+                max_valid = move
+                max_utility = utility
 
-        if count == self.chain:
-            print("N/S")
-            return True
+            if beta is not None and utility >= beta:
+                return trans
 
-        count = 0
-        # East
-        for col in range(move[1], self.dimension):
-            if self.state.board.board[(move[0], col)] == player.piece:
-                count += 1
-            else:
-                break
+            if alpha is None or utility > alpha:
+                alpha = utility
 
-        # West
-        for col in reversed(range(move[1])):
-            if self.state.board.board[(move[0], col)] == player.piece:
-                count += 1
-            else:
-                break
+        return max_valid
 
-        if count == self.chain:
-            print("E/W")
-            return True
+    def min_utility(self, state, player, alpha, beta, depth):
+        if state.isWinner(self.initial, self.chain) or\
+            state.isWinner(self.oponent, self.chain) or\
+                depth == 0:
+            return state.heuristic(self.initial, self.oponent, self.chain)
+        else:
+            valid = state.getValidTransitions(player)
+            min_utility = None
+            for move, state in valid:
+                # print("MIN")
+                # state.board.printBoard()
+                # input("Enter")
+                utility = self.max_utility(state, self.swapTurn(player),
+                                           alpha, beta, depth-1)
+                if min_utility is None or utility < min_utility:
+                    min_utility = utility
 
-        count = 0
-        # North West
-        for row, col in zip(reversed(range(move[0])),
-                            reversed(range(move[1]))):
-            if self.state.board.board[(row, col)] == player.piece:
-                count += 1
-            else:
-                break
+                if alpha is not None and utility <= alpha:
+                    return utility
 
-        # South East
-        for row, col in zip(range(move[0], self.dimension),
-                            range(move[1], self.dimension)):
-            if self.state.board.board[(row, col)] == player.piece:
-                count += 1
-            else:
-                break
+                if beta is None or utility < beta:
+                    beta = utility
+            return min_utility
 
-        if count == self.chain:
-            print("NW/SE")
-            return True
+    def max_utility(self, state, player, alpha, beta, depth):
+        if state.isWinner(self.initial, self.chain) or\
+            state.isWinner(self.oponent, self.chain) or\
+                depth == 0:
+            return state.heuristic(self.initial, self.oponent, self.chain)
+        else:
+            valid = state.getValidTransitions(player)
+            max_utility = None
+            for move, state in valid:
+                # print("MAX")
+                # state.board.printBoard()
+                # input("Enter")
+                utility = self.min_utility(state, self.swapTurn(player),
+                                           alpha, beta, depth-1)
+                if max_utility is None or utility > max_utility:
+                    max_utility = utility
 
-        count = 0
-        # North East
-        for row, col in zip(reversed(range(move[0])),
-                            range(move[1] + 1, self.dimension)):
-            if self.state.board.board[(row, col)] == player.piece:
-                count += 1
-            else:
-                break
+                if beta is not None and utility >= beta:
+                    return utility
 
-        # South West
-        for row, col in zip(range(move[0], self.dimension),
-                            reversed(range(move[1] + 1))):
-            if self.state.board.board[(row, col)] == player.piece:
-                count += 1
-            else:
-                break
-
-        if count == self.chain:
-            print("NE/SW")
-            return True
-
-        return False
-
-    def createNewState(self, move):
-        new_board = self.state.board
-        new_board.makeMove(move, self.current)
-        new_state = State()
-        new_state.parent = self.state
-        new_state.board = new_board
-
-        return new_state
+                if alpha is None or utility > alpha:
+                    alpha = utility
+            return max_utility
