@@ -11,9 +11,9 @@ class State(object):
 
     def heuristic(self, player, oponent, chain):
         if self.isWinner(player, chain):
-            return 1
+            return 1000
         if self.isWinner(oponent, chain):
-            return -1
+            return -1000
         return 0
 
     def createNewState(self, move, player):

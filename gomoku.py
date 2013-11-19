@@ -14,8 +14,8 @@ class Gomoku(object):
         self.initial = None
         self.current = None
         self.oponent = None
-        self.player_x = Player('X', [])
-        self.player_o = Player('O', [])
+        self.player_x = Player('X')
+        self.player_o = Player('O')
         self.mode = None
         self.max_depth = int(dimension/2 - 1)
 
@@ -29,9 +29,11 @@ class Gomoku(object):
     def swapTurn(self, player):
         if player == self.player_x:
             self.current = self.player_o
+            self.oponent = self.player_x
             return self.player_o
         else:
             self.current = self.player_x
+            self.oponent = self.player_o
             return self.player_x
 
     def manualGame(self):
@@ -111,7 +113,7 @@ class Gomoku(object):
             initial = self.current
 
             if initial == self.initial:
-                best = self.alpha_beta_search(self.current, self.max_depth)
+                best = self.alphaBetaSearch(self.current, self.max_depth)
                 self.state = self.state.createNewState(best, initial)
                 self.printCurrentBoard()
                 print("Best Move: %s" % (best,))
@@ -178,7 +180,7 @@ class Gomoku(object):
         return self.winner is not None or\
             not self.state.board.getValidMoves()
 
-    def alpha_beta_search(self, player, depth):
+    def alphaBetaSearch(self, player, depth):
         max_valid = None
         max_utility = None
         alpha = None
@@ -186,8 +188,8 @@ class Gomoku(object):
 
         valid = self.state.getValidTransitions(player)
         for move, state in valid:
-            utility = self.min_value(state, self.swapTurn(player),
-                                     alpha, beta, depth)
+            utility = self.minValue(state, self.swapTurn(player),
+                                    alpha, beta, depth)
 
             if max_utility is None or utility > max_utility:
                 max_valid = move
@@ -201,15 +203,15 @@ class Gomoku(object):
 
         return max_valid
 
-    def min_value(self, state, player, alpha, beta, depth):
+    def minValue(self, state, player, alpha, beta, depth):
         if depth == 0:
             return state.heuristic(self.initial, self.oponent, self.chain)
         else:
             valid = state.getValidTransitions(player)
             min_utility = None
             for move, state in valid:
-                utility = self.max_value(state, self.swapTurn(player),
-                                         alpha, beta, depth-1)
+                utility = self.maxValue(state, self.swapTurn(player),
+                                        alpha, beta, depth-1)
                 if min_utility is None or utility < min_utility:
                     min_utility = utility
 
@@ -220,15 +222,15 @@ class Gomoku(object):
                     beta = utility
             return min_utility
 
-    def max_value(self, state, player, alpha, beta, depth):
+    def maxValue(self, state, player, alpha, beta, depth):
         if depth == 0:
             return state.heuristic(self.initial, self.oponent, self.chain)
         else:
             valid = state.getValidTransitions(player)
             max_utility = None
             for move, state in valid:
-                utility = self.min_value(state, self.swapTurn(player),
-                                         alpha, beta, depth-1)
+                utility = self.minValue(state, self.swapTurn(player),
+                                        alpha, beta, depth-1)
                 if max_utility is None or utility > max_utility:
                     max_utility = utility
 
