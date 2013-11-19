@@ -9,8 +9,8 @@ class State(object):
         self.board = Board()
         self.parent = None
 
-    def heuristic(self, player, oponent, chain):
-        if self.isWinner(player, chain):
+    def heuristic(self, initial, oponent, chain):
+        if self.isWinner(initial, chain):
             return 1000
         if self.isWinner(oponent, chain):
             return -1000
