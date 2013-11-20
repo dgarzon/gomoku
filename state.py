@@ -9,31 +9,31 @@ class State(object):
         self.board = Board()
         self.parent = None
 
-    def heuristic(self, game):
-        flag = None
+    def heuristic(self, game, player):
 
-        if self.isWinner(game.current, game.chain):
-            flag = True
-        if self.isWinner(game.oponent, game.chain):
-            flag = True
+        current_chain_count = self.countChains(player)
+        oponent_chain_count = self.countChains(game.swapInitial(player))
 
-        current_chain_count = self.countChains(game.current)
-        oponent_chain_count = self.countChains(game.oponent)
+        # print("Current: %c" % player.piece + " %d" % current_chain_count)
+        # print("Oponent: %c" % game.swapInitial(player).piece + " %d" % oponent_chain_count)
+
+        # self.board.printBoard()
+
+        # input("Enter..")
 
         if game.minimax_val == 2:  # MAX
-            # self.board.printBoard()
-            # print(current_chain_count, oponent_chain_count)
-            # input("Enter..")
-            if flag is True:
+            if oponent_chain_count == game.chain:
+                return int(10000)
+            if current_chain_count == game.chain:
                 return int(1000)
-            if current_chain_count >= oponent_chain_count:
-                return int(current_chain_count)
-            elif current_chain_count == oponent_chain_count == game.chain - 1:
-                return int(1000)
+            if current_chain_count > oponent_chain_count:
+                return int(oponent_chain_count)
             else:
-                return int(-oponent_chain_count)
+                return int(-current_chain_count)
         else:  # MIN
-            if flag is True:
+            if oponent_chain_count == game.chain:
+                return int(-10000)
+            if current_chain_count == game.chain:
                 return int(-1000)
             if current_chain_count > oponent_chain_count:
                 return int(-current_chain_count)

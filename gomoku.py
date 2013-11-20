@@ -38,6 +38,12 @@ class Gomoku(object):
             self.oponent = self.player_o
             return self.player_x
 
+    def swapInitial(self, player):
+        if player == self.player_x:
+            return self.player_o
+        else:
+            return self.player_x
+
     def manualGame(self):
         print("Start:                                    ", end='\n')
         print(" 1. Human (X)                             ", end='\n')
@@ -117,7 +123,7 @@ class Gomoku(object):
             initial = self.current
 
             if initial.piece == 'X':
-                best, heuristic = self.alphaBetaSearch(self.current,
+                best, heuristic = self.alphaBetaSearch(initial,
                                                        self.max_depth)
                 self.state = self.state.createNewState(best, initial)
                 self.printCurrentBoard()
@@ -248,7 +254,7 @@ class Gomoku(object):
 
         valid = self.state.getValidTransitions(player)
         for move, state in valid:
-            utility = self.minValue(state, self.swapTurn(player),
+            utility = self.minValue(state, self.swapInitial(player),
                                     alpha, beta, depth-1)
 
             if max_utility is None or utility > max_utility:
@@ -265,12 +271,12 @@ class Gomoku(object):
 
     def minValue(self, state, player, alpha, beta, depth):
         if depth == 0:
-            return state.heuristic(self)
+            return state.heuristic(self, self.swapInitial(player))
         else:
             valid = state.getValidTransitions(player)
             min_utility = None
             for move, state in valid:
-                utility = self.maxValue(state, self.swapTurn(player),
+                utility = self.maxValue(state, self.swapInitial(player),
                                         alpha, beta, depth-1)
                 if min_utility is None or utility < min_utility:
                     min_utility = utility
@@ -284,12 +290,12 @@ class Gomoku(object):
 
     def maxValue(self, state, player, alpha, beta, depth):
         if depth == 0:
-            return state.heuristic(self)
+            return state.heuristic(self, self.swapInitial(player))
         else:
             valid = state.getValidTransitions(player)
             max_utility = None
             for move, state in valid:
-                utility = self.minValue(state, self.swapTurn(player),
+                utility = self.minValue(state, self.swapInitial(player),
                                         alpha, beta, depth-1)
                 if max_utility is None or utility > max_utility:
                     max_utility = utility
