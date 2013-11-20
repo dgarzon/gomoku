@@ -9,12 +9,88 @@ class State(object):
         self.board = Board()
         self.parent = None
 
-    def heuristic(self, initial, oponent, chain):
-        if self.isWinner(initial, chain):
-            return 1000
-        if self.isWinner(oponent, chain):
-            return -1000
-        return 0
+    def heuristic(self, game):
+        flag = None
+
+        if self.isWinner(game.current, game.chain):
+            flag = True
+        if self.isWinner(game.oponent, game.chain):
+            flag = True
+
+        current_chain_count = self.countChains(game.current)
+        oponent_chain_count = self.countChains(game.oponent)
+
+        # if oponent_chain_count > current_chain_count:
+        #     return int(-current_chain_count)
+        # else:
+        #     return int(oponent_chain_count)
+        # if current_chain_count < game.chain and\
+        #         current_chain_count >= oponent_chain_count:
+        #     return int(current_chain_count)
+        # if oponent_chain_count < game.chain and\
+        #         current_chain_count < oponent_chain_count:
+        #     return int(-oponent_chain_count)
+        # print("Current %c: " % game.current.piece + " Chain: %d" % current_chain_count)
+        # print("Opponent %c: " % game.oponent.piece + " Chain: %d" % oponent_chain_count)
+        # self.board.printBoard()
+        #
+
+        if game.min_max % 2 == 0:  # MAX
+            if flag is True:
+                return int(1000)
+            if current_chain_count > oponent_chain_count:
+                return int(current_chain_count)
+            elif current_chain_count == oponent_chain_count == game.chain - 1:
+                return int(1000)
+            else:
+                return int(-oponent_chain_count)
+        else:  # MIN
+            if flag is True:
+                return int(-1000)
+            if current_chain_count > oponent_chain_count:
+                return int(-current_chain_count)
+            elif current_chain_count == oponent_chain_count == game.chain - 1:
+                return int(-1000)
+            else:
+                return int(-oponent_chain_count)
+        # return 0
+
+    def counter(self, player, row, col, dir_x, dir_y):
+        count = 0
+
+        r = row + dir_x
+        c = col + dir_y
+
+        while r >= 0 and r < self.board.dimension and c >= 0 and\
+                c < self.board.dimension:
+            if self.board.board[(r, c)] == player.piece:
+                count += 1
+                r += dir_x
+                c += dir_y
+            else:
+                break
+
+        return count
+
+    def countChains(self, player):
+        max_chain = 0
+
+        for row in range(self.board.dimension):
+            for col in range(self.board.dimension):
+                vertical_down = self.counter(player, row, col, 1, 0)
+                vertical_up = self.counter(player, row, col, -1, 0)
+                horizontal_right = self.counter(player, row, col, 0, 1)
+                horizontal_left = self.counter(player, row, col, 0, 1)
+                diagonal_1 = self.counter(player, row, col, 1, 1)
+                diagonal_2 = self.counter(player, row, col, -1, 1)
+                diagonal_3 = self.counter(player, row, col, 1, -1)
+                diagonal_4 = self.counter(player, row, col, -1, -1)
+                max_chain = max(max_chain, vertical_up, vertical_down,
+                                horizontal_right, horizontal_left,
+                                diagonal_1, diagonal_2,
+                                diagonal_3, diagonal_4)
+
+        return max_chain
 
     def createNewState(self, move, player):
         new = State()
