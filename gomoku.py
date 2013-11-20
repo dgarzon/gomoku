@@ -26,6 +26,8 @@ class Gomoku(object):
             self.manualGame()
         elif self.mode == 2:
             self.agentTournamentGame()
+        elif self.mode == 3:
+            self.agentVsAgentGame()
 
     def swapTurn(self, player):
         if player == self.player_x:
@@ -94,9 +96,9 @@ class Gomoku(object):
             print("In loop..")
 
     def agentTournamentGame(self):
-        print("Start:                                    ", end='\n')
-        print(" 1. Agent (X)                             ", end='\n')
-        print(" 2. Agent (O)                             ", end='\n')
+        print("Start:                                         ", end='\n')
+        print(" 1. My Agent Starts (X)                        ", end='\n')
+        print(" 2. Other Agent Starts (O)                     ", end='\n')
 
         i = int(input("Choose Starting Player: "))
         if i == 1:
@@ -118,19 +120,38 @@ class Gomoku(object):
                                                        self.max_depth)
                 self.state = self.state.createNewState(best, initial)
                 self.printCurrentBoard()
-                print("Best Move: %s" % (best,))
-                print("Heuristic Value: %d" % heuristic)
-                print("------------------------------------------", end='\n')
+                if heuristic is not None:
+                    print("Best Move: %s" % (best,))
+                    print("Heuristic Value: %d" % heuristic)
+                    print("------------------------------------------", end='\n')
+                else:
+                    print("No Move Found.")
+                    print("(-1, -1)")
+                    print("------------------------------------------", end='\n')
             else:
-                move = initial.getMove()
+                flag = True
+                while flag is True:
+                    move = initial.getMove()
+                    if self.state.board.isValidMove(move):
+                        flag = None
+                    else:
+                        print("Spot Taken.")
                 self.state = self.state.createNewState(move, initial)
                 self.printCurrentBoard()
 
             if self.state.isWinner(initial, self.chain) is True:
                 self.winner = initial
-                self.printWinMessage()
 
             self.current = self.swapTurn(initial)
+
+        if self.winner is not None:
+            self.printWinMessage()
+        else:
+            self.printGameEnded()
+            self.state.board.printBoard()
+            print("------------------------------------------", end='\n')
+            print("                 Tie                      ", end='\n')
+            print("------------------------------------------", end='\n')
 
     def printCurrentBoard(self):
         print("------------------------------------------", end='\n')
@@ -139,22 +160,53 @@ class Gomoku(object):
         self.state.board.printBoard()
         print("------------------------------------------", end='\n')
 
-    def machineMachineGame(self):
+    def agentVsAgentGame(self):
         print("Start:                                      ", end='\n')
-        print(" 1. Machine (X)                             ", end='\n')
-        print(" 2. Machine (O)                             ", end='\n')
+        print(" 1. Agent (X)                             ", end='\n')
+        print(" 2. Agent (O)                             ", end='\n')
 
         i = int(input("Choose Starting Player: "))
         if i == 1:
-            self.current = self.player_x
+            self.initial = self.player_x
+            self.oponent = self.player_o
         elif i == 2:
-            self.current = self.player_o
+            self.initial = self.player_o
+            self.oponent = self.player_x
         else:
             print("Only Two Players Available")
             sys.exit()
 
-        while game.isOver() is not True:
-            print("In loop..")
+        self.current = self.initial
+        while self.isOver() is not True:
+            initial = self.current
+            best, heuristic = self.alphaBetaSearch(self.current,
+                                                   self.max_depth)
+            self.state = self.state.createNewState(best, initial)
+            self.printCurrentBoard()
+
+            if self.state.isWinner(initial, self.chain) is True:
+                self.winner = initial
+
+            self.current = self.swapTurn(initial)
+
+            if heuristic is not None:
+                print("Best Move: %s" % (best,))
+                print("Heuristic Value: %d" % heuristic)
+                print("------------------------------------------", end='\n')
+                input("Press Enter..")
+            else:
+                print("No Move Found.")
+                print("(-1, -1)")
+                print("------------------------------------------", end='\n')
+
+        if self.winner is not None:
+            self.printWinMessage()
+        else:
+            self.printGameEnded()
+            self.state.board.printBoard()
+            print("------------------------------------------", end='\n')
+            print("                 Tie                      ", end='\n')
+            print("------------------------------------------", end='\n')
 
     def displayMenu(self):
         print("------------------------------------------", end='\n')
@@ -162,9 +214,9 @@ class Gomoku(object):
         print("------------------------------------------", end='\n')
         print("Modes:                                    ")
         print(" 1. Human vs. Human                       ")
-        print(" 2. Agent vs. Machine                     ")
-        print(" 3. Random vs. Agent                      ")
+        print(" 2. Tournament                            ")
         print(" 3. Agent vs. Agent                       ")
+        print(" 4. Random vs. Agent                      ")
         print("------------------------------------------", end='\n')
 
     def printWinMessage(self):

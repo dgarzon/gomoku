@@ -20,21 +20,6 @@ class State(object):
         current_chain_count = self.countChains(game.current)
         oponent_chain_count = self.countChains(game.oponent)
 
-        # if oponent_chain_count > current_chain_count:
-        #     return int(-current_chain_count)
-        # else:
-        #     return int(oponent_chain_count)
-        # if current_chain_count < game.chain and\
-        #         current_chain_count >= oponent_chain_count:
-        #     return int(current_chain_count)
-        # if oponent_chain_count < game.chain and\
-        #         current_chain_count < oponent_chain_count:
-        #     return int(-oponent_chain_count)
-        # print("Current %c: " % game.current.piece + " Chain: %d" % current_chain_count)
-        # print("Opponent %c: " % game.oponent.piece + " Chain: %d" % oponent_chain_count)
-        # self.board.printBoard()
-        #
-
         if game.min_max % 2 == 0:  # MAX
             if flag is True:
                 return int(1000)
@@ -43,7 +28,7 @@ class State(object):
             elif current_chain_count == oponent_chain_count == game.chain - 1:
                 return int(1000)
             else:
-                return int(-oponent_chain_count)
+                return int(oponent_chain_count)
         else:  # MIN
             if flag is True:
                 return int(-1000)
@@ -53,7 +38,6 @@ class State(object):
                 return int(-1000)
             else:
                 return int(-oponent_chain_count)
-        # return 0
 
     def counter(self, player, row, col, dir_x, dir_y):
         count = 0
