@@ -20,15 +20,18 @@ class State(object):
         current_chain_count = self.countChains(game.current)
         oponent_chain_count = self.countChains(game.oponent)
 
-        if game.min_max % 2 == 0:  # MAX
+        if game.minimax_val == 2:  # MAX
+            # self.board.printBoard()
+            # print(current_chain_count, oponent_chain_count)
+            # input("Enter..")
             if flag is True:
                 return int(1000)
-            if current_chain_count > oponent_chain_count:
+            if current_chain_count >= oponent_chain_count:
                 return int(current_chain_count)
             elif current_chain_count == oponent_chain_count == game.chain - 1:
                 return int(1000)
             else:
-                return int(oponent_chain_count)
+                return int(-oponent_chain_count)
         else:  # MIN
             if flag is True:
                 return int(-1000)

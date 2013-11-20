@@ -16,9 +16,8 @@ class Gomoku(object):
         self.oponent = None
         self.player_x = Player('X')
         self.player_o = Player('O')
-        self.mode = None
         self.max_depth = int(dimension/2)
-        self.min_max = None
+        self.minimax_val = 0
 
     def start(self):
         self.state.board.initializeBoard(self.dimension)
@@ -102,9 +101,11 @@ class Gomoku(object):
 
         i = int(input("Choose Starting Player: "))
         if i == 1:
+            self.minimax_val = 2
             self.initial = self.player_x
             self.oponent = self.player_o
         elif i == 2:
+            self.minimax_val = 1
             self.initial = self.player_o
             self.oponent = self.player_x
         else:
@@ -179,6 +180,10 @@ class Gomoku(object):
         self.current = self.initial
         while self.isOver() is not True:
             initial = self.current
+            if self.initial == initial:
+                self.minimax_val = 2
+            else:
+                self.minimax_val = 1
             best, heuristic = self.alphaBetaSearch(self.current,
                                                    self.max_depth)
             self.state = self.state.createNewState(best, initial)
@@ -259,7 +264,6 @@ class Gomoku(object):
         return max_valid, max_utility
 
     def minValue(self, state, player, alpha, beta, depth):
-        self.min_max = 1
         if depth == 0:
             return state.heuristic(self)
         else:
@@ -279,7 +283,6 @@ class Gomoku(object):
             return min_utility
 
     def maxValue(self, state, player, alpha, beta, depth):
-        self.min_max = 2
         if depth == 0:
             return state.heuristic(self)
         else:
