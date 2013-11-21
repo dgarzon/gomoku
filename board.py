@@ -1,3 +1,5 @@
+import random
+
 class Board(object):
     def __init__(self):
         super(Board, self).__init__()
@@ -28,9 +30,39 @@ class Board(object):
             return (-1, -1)
 
     def isValidMove(self, move):
-        if self.board[(move[0], move[1])] == '.':
-            return True
+        if move[0] >= 0 and move[0] < self.dimension  and move[1] >= 0 and move[1] < self.dimension:
+            if self.board[(move[0], move[1])] == '.':
+                return True
+            else:
+                return False
         return False
+
+    def randomMove(self):
+        valid = self.getValidMoves()
+
+        rand = random.randint(0, len(valid))
+
+        return valid[rand]
+
+    def getCloseMoves(self, row, col):
+        moves = [(row - 1, col), (row + 1, col), (row, col + 1), (row, col - 1), (row + 1, col + 1), (row - 1, col - 1)]
+
+        return moves
+
+
+    def closeMove(self, move):
+        close = self.getCloseMoves(move[0], move[1])
+
+        rand = random.randint(0, len(close) - 1)
+
+        move = close[rand]
+
+        while self.isValidMove(move) is False:
+            rand = random.randint(0, len(close) - 1)
+            move = close[rand]
+
+        return move
+
 
     def getValidMoves(self):
         valid = []

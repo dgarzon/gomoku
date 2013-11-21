@@ -1,6 +1,10 @@
 import sys
 from state import *
 from player import *
+import signal
+
+def signal_handler(signum, frame):
+    raise Exception("Timed out!")
 
 
 class Gomoku(object):
@@ -17,7 +21,7 @@ class Gomoku(object):
         self.player_x = Player('X')
         self.player_o = Player('O')
         self.max_depth = int(dimension/2)
-        self.minimax_val = 0
+        self.minimax_moves = []
 
     def start(self):
         self.state.board.initializeBoard(self.dimension)
@@ -81,6 +85,11 @@ class Gomoku(object):
             print("                 Tie                      ", end='\n')
             print("------------------------------------------", end='\n')
 
+    def getMaxMove(self):
+        max_move = max(self.minimax_moves, key=lambda item: item[0])[1]
+        print(max_move)
+        return max_move
+
     def randomGame(self):
         print("Start:                                      ", end='\n')
         print(" 1. Machine (X)                             ", end='\n')
@@ -110,31 +119,47 @@ class Gomoku(object):
             self.minimax_val = 2
             self.initial = self.player_x
             self.oponent = self.player_o
+            rand = self.state.board.randomMove()
+            self.state = self.state.createNewState(rand, self.initial)
+            self.printCurrentBoard()
+            print("Initial Move: %s" % (rand,))
+            print("------------------------------------------", end='\n')
+            self.current = self.oponent
         elif i == 2:
             self.minimax_val = 1
             self.initial = self.player_o
             self.oponent = self.player_x
+            self.current = self.initial
         else:
             print("Only Two Players Available")
             sys.exit()
 
-        self.current = self.initial
         while self.isOver() is not True:
             initial = self.current
 
             if initial.piece == 'X':
-                best, heuristic = self.alphaBetaSearch(initial,
-                                                       self.max_depth)
-                self.state = self.state.createNewState(best, initial)
-                self.printCurrentBoard()
+                heuristic = None
+                signal.signal(signal.SIGALRM, signal_handler)
+                signal.alarm(self.limit)
+                try:
+                    heuristic = self.alphaBetaSearch(initial,
+                                                     self.max_depth)
+                except Exception:
+                    self.state = self.state.createNewState(self.state.board.closeMove(self.state.move), initial)
+                    self.printCurrentBoard()
+                    print("Best Move: %s" % (self.state.move,))
+                    print("------------------------------------------", end='\n')
+                    self.minimax_moves = []
+
                 if heuristic is not None:
+                    best = self.getMaxMove()
+                    self.state = self.state.createNewState(best, initial)
+                    self.printCurrentBoard()
                     print("Best Move: %s" % (best,))
                     print("Heuristic Value: %d" % heuristic)
                     print("------------------------------------------", end='\n')
-                else:
-                    print("No Move Found.")
-                    print("(-1, -1)")
-                    print("------------------------------------------", end='\n')
+                    self.minimax_moves = []
+
             else:
                 flag = True
                 while flag is True:
@@ -176,39 +201,49 @@ class Gomoku(object):
         if i == 1:
             self.initial = self.player_x
             self.oponent = self.player_o
+            rand = self.state.board.randomMove()
+            self.state = self.state.createNewState(rand, self.initial)
+            self.printCurrentBoard()
+            print("Initial Move: %s" % (rand,))
+            print("------------------------------------------", end='\n')
+            self.current = self.oponent
         elif i == 2:
             self.initial = self.player_o
             self.oponent = self.player_x
+            self.current = self.initial
         else:
             print("Only Two Players Available")
             sys.exit()
 
-        self.current = self.initial
         while self.isOver() is not True:
             initial = self.current
-            if self.initial == initial:
-                self.minimax_val = 2
-            else:
-                self.minimax_val = 1
-            best, heuristic = self.alphaBetaSearch(self.current,
-                                                   self.max_depth)
-            self.state = self.state.createNewState(best, initial)
-            self.printCurrentBoard()
+            heuristic = None
+            signal.signal(signal.SIGALRM, signal_handler)
+            signal.alarm(self.limit)
+            try:
+                heuristic = self.alphaBetaSearch(self.current,
+                                                 self.max_depth)
+                best = self.getMaxMove()
+                self.state = self.state.createNewState(best, initial)
+                self.printCurrentBoard()
+                self.minimax_moves = []
+
+                print("Best Move: %s" % (best,))
+                print("Heuristic Value: %d" % heuristic)
+                print("------------------------------------------", end='\n')
+                input("Press Enter..")
+
+            except Exception:
+                self.state = self.state.createNewState(self.state.board.closeMove(self.state.move), initial)
+                self.printCurrentBoard()
+                print("Best Move: %s" % (self.state.move,))
+                print("------------------------------------------", end='\n')
+                self.minimax_moves = []
 
             if self.state.isWinner(initial, self.chain) is True:
                 self.winner = initial
 
             self.current = self.swapTurn(initial)
-
-            if heuristic is not None:
-                print("Best Move: %s" % (best,))
-                print("Heuristic Value: %d" % heuristic)
-                print("------------------------------------------", end='\n')
-                input("Press Enter..")
-            else:
-                print("No Move Found.")
-                print("(-1, -1)")
-                print("------------------------------------------", end='\n')
 
         if self.winner is not None:
             self.printWinMessage()
@@ -247,62 +282,45 @@ class Gomoku(object):
             not self.state.board.getValidMoves()
 
     def alphaBetaSearch(self, player, depth):
-        max_valid = None
-        max_utility = None
-        alpha = None
-        beta = None
+        alpha = float('-inf')
+        beta = float('inf')
 
         valid = self.state.getValidTransitions(player)
-        for move, state in valid:
-            utility = self.minValue(state, self.swapInitial(player),
-                                    alpha, beta, depth-1)
 
-            if max_utility is None or utility > max_utility:
-                max_valid = move
-                max_utility = utility
+        utility = self.maxValue(self.state, player,
+                                alpha, beta, depth-1)
 
-            if beta is not None and utility >= beta:
-                return move
-
-            if alpha is None or utility > alpha:
-                alpha = utility
-
-        return max_valid, max_utility
+        return utility
 
     def minValue(self, state, player, alpha, beta, depth):
         if depth == 0:
-            return state.heuristic(self, self.swapInitial(player))
+            return state.heuristic(self, player)
         else:
             valid = state.getValidTransitions(player)
-            min_utility = None
+            utility = float('inf')
             for move, state in valid:
-                utility = self.maxValue(state, self.swapInitial(player),
-                                        alpha, beta, depth-1)
-                if min_utility is None or utility < min_utility:
-                    min_utility = utility
-
-                if alpha is not None and utility <= alpha:
+                utility = min(utility,
+                              self.maxValue(state, self.swapInitial(player),
+                                            alpha, beta, depth-1))
+                if utility <= alpha:
                     return utility
+                beta = min(beta, utility)
 
-                if beta is None or utility < beta:
-                    beta = utility
-            return min_utility
+            return utility
 
     def maxValue(self, state, player, alpha, beta, depth):
         if depth == 0:
-            return state.heuristic(self, self.swapInitial(player))
+            return state.heuristic(self, player)
         else:
             valid = state.getValidTransitions(player)
-            max_utility = None
+            utility = float('-inf')
             for move, state in valid:
-                utility = self.minValue(state, self.swapInitial(player),
-                                        alpha, beta, depth-1)
-                if max_utility is None or utility > max_utility:
-                    max_utility = utility
-
-                if beta is not None and utility >= beta:
+                utility = max(utility,
+                              self.minValue(state, self.swapInitial(player),
+                                            alpha, beta, depth-1))
+                self.minimax_moves.append((utility, move))
+                if utility >= beta:
                     return utility
+                alpha = max(alpha, utility)
 
-                if alpha is None or utility > alpha:
-                    alpha = utility
-            return max_utility
+            return utility
